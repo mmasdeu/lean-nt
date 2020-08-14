@@ -1,0 +1,8 @@
+[package]
+name = "aritmetica"
+version = "0.1"
+lean_version = "leanprover-community/lean:3.16.5"
+path = "src"
+
+[dependencies]
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "6624509eedb747ba52e0bebbe70ae559e00209a5"}
