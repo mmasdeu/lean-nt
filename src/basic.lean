@@ -12,7 +12,6 @@ noncomputable theory
 lemma prod_finset_distinct_inv {α : Type*} [comm_group α] {s : finset α} :
   (∀ x ∈ s, x⁻¹ ∈ s) → (∀ x ∈ s, x⁻¹ ≠ x) → (∏ x in s, x) = 1 :=
 begin
-
 apply finset.case_strong_induction_on s,
 tauto,
 intros a s a_notin_s H h1 h2,
@@ -195,8 +194,6 @@ end
 
 variables {G : Type*} [comm_group G] [fintype G]
 
-instance : fintype (subgroup G) := fintype.of_injective (coe : subgroup G → set G) $ λ _ _, subgroup.ext'
-
 /-
 If a is a subgroup of G[2] and x ∈ G[2], then a ∪ x *l a is a subgroup.
 -/
@@ -218,13 +215,13 @@ def insert_twotors_to_twotors {x : G} {a : subgroup G}
       right,
       rw [mem_left_coset_iff, ←mul_assoc],
       rw mem_left_coset_iff at hu2,
-      exact is_submonoid.mul_mem hu2 hv1,
+      exact subgroup.mul_mem a hu2 hv1,
     },
     {
       right,
       rw [mul_comm, mem_left_coset_iff, ←mul_assoc],
       rw mem_left_coset_iff at hv2,
-      exact is_submonoid.mul_mem hv2 hu1,
+      exact subgroup.mul_mem a hv2 hu1,
     },
     {
       left,
@@ -243,7 +240,7 @@ def insert_twotors_to_twotors {x : G} {a : subgroup G}
   inv_mem' := 
   begin
       intros u hu,
-      cases hu with hu1 hu2, by exact or.inl (is_subgroup.inv_mem hu1),
+      cases hu with hu1 hu2, by exact or.inl (subgroup.inv_mem a hu1),
       {
           right,
           rw mem_left_coset_iff at hu2 ⊢,
@@ -368,9 +365,11 @@ begin
   trivial,
 end
 
+instance : fintype (subgroup G) := fintype.of_injective (coe : subgroup G → set G) $ λ _ _, subgroup.ext'
+
 -- given G two torsion and 1 ≠ g ∈ G, there is H < G of index 2 with g ∉ H
 lemma element_avoidance {g : G}  (h₁ : g ≠ 1) (h₂ : g * g = 1):
- ∃ (H : subgroup G) ,
+ ∃ (H : subgroup G),
   (g ∉ H ∧ 
   (∀ (x : G), x ∈ H → x * x = 1) ∧ 
   {x : G | x * x = 1} = H ∪ (left_coset g H)) 
