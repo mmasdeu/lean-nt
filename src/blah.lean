@@ -16,20 +16,12 @@ variables {p r n : ℕ} [fact p.prime] [1 ≤ r]
 def R := units( zmod n)
 
 def C2 (m : ℕ) : subgroup (units (zmod m)) :=
-begin
-let C : subgroup (units (zmod m)) :=
 { carrier := {1, -1},
-  one_mem' := by simp,
+  one_mem' := set.mem_insert 1 {-1},
   mul_mem' := λ a b (ha : a ∈ {1, -1}) (hb : b ∈ {1, -1}), by finish,
-  inv_mem' := λ a (ha : a ∈ {1, -1}), by finish,
-},
-exact C,
-end
+  inv_mem' := λ a (ha : a ∈ {1, -1}), by finish }
 
-instance is_fintype (m : ℕ) : fintype (C2 m) :=
-begin
-sorry
-end
+instance is_fintype (m : ℕ) : fintype (C2 m) := fintype (C2 m) := set.fintype_insert 1 {-1}
 
 lemma card_C2_is_two (m : ℕ) (h: 2 < m) : fintype.card (C2 m) = 2 :=
 begin
