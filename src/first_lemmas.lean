@@ -26,7 +26,7 @@ lemma pr_eq_p_mul_pr1 (h : 1 ≤ r) : p^r = p * p^(r-1) :=
 begin
     induction r with d hd,
     linarith,
-    ring
+    refl,
 end
 
 lemma zero_iff_n_divides (x : zmod n) (h : 0 < n) : x = 0 ↔ n  ∣ x.val :=
@@ -41,7 +41,7 @@ begin
         cases h with w hw,
         suffices : w = 0, by finish,
         {
-            haveI : fact(0 < n) := h,
+            haveI : fact(0 < n) := {out := h},
             have H : x.val < n := zmod.val_lt x,
             rw hw at H,
             suffices : w < 1, by linarith,
@@ -55,7 +55,9 @@ lemma zero_iff_n_divides' (x : ℤ) : (x : zmod n) = 0 ↔ (n : ℤ) ∣ x := ch
 lemma eq_iff_n_divides' {x y : ℤ} (hp: p.prime) : (x : zmod (p^r)) = y ↔ (p^r : ℤ) ∣ x - y :=
 begin
     haveI hp_prime : p.prime := by assumption,
-    haveI pr_pos : 0 < p^r := nat.pos_pow_of_pos r (nat.prime.pos hp_prime),
+    have p_pos : 0 < p := nat.prime.pos hp_prime,
+    haveI pr_pos : 0 < p^r := pow_pos (nat.prime.pos hp_prime) r,
+    
     split,
     {
         intro h,
@@ -84,6 +86,23 @@ end
 lemma coerce_down (x y: zmod (p^r)) (h : x = y) : (x : zmod p) = (y : zmod p) :=
     by exact congr_arg coe h
 
+lemma int.prime_dvd_mul {p : ℕ} {a b : ℤ} (hp : p.prime) (h: (p : ℤ) ∣ a * b) : (p : ℤ) ∣ a ∨ (p : ℤ) ∣ b :=
+begin
+    obtain ⟨a1, ha1⟩ := int.eq_coe_or_neg a,
+    obtain ⟨b1, hb1⟩ := int.eq_coe_or_neg b,
+    cases ha1;
+    {   subst ha1,
+        cases hb1;
+        {
+            subst hb1,
+            replace h : (p : ℤ) ∣ a1 * b1, by finish,
+            repeat {rw dvd_neg},
+            rw [←int.coe_nat_mul, int.coe_nat_dvd]  at h,
+            repeat {rw int.coe_nat_dvd},
+            exact (nat.prime.dvd_mul hp).mp h,
+        } }
+end
+
 lemma key_lemma (x : ℤ) (h : (x : zmod (p^r))^2 = 1) (hr : 1 ≤ r) (hp : p.prime) : (x : zmod p) = 1 ∨ (x : zmod p) = -1 :=
 begin
     rw ←sub_eq_zero at h,
@@ -91,7 +110,7 @@ begin
     have h_p_dvd : (p : ℤ) ∣ (x - 1) * (x + 1),
     {
         obtain ⟨w, hw⟩ := h,
-        ring,
+        ring_nf,
         rw hw,
         refine dvd_mul_of_dvd_left _ w,
         casesI r,
@@ -101,8 +120,9 @@ begin
             exact int.coe_nat_pow p (r + 1),
         }
     },
-    have h3 := (int.prime.dvd_mul' hp h_p_dvd),
-    simpa [←zmod.int_coe_zmod_eq_zero_iff_dvd, ←sub_eq_zero] using h3,
+    have h3 := int.prime_dvd_mul hp h_p_dvd,
+    simpa [←zmod.int_coe_zmod_eq_zero_iff_dvd, ←sub_eq_zero]  using h3,
+    
 end
 
 lemma part1 {x ε : ℤ} (hprime : p.prime) (one_le_r : 1 ≤ r)
@@ -112,7 +132,7 @@ begin
     haveI p_ne_zero : (p : ℤ) ≠ 0 :=
         by exact_mod_cast nat.prime.ne_zero hprime,
     haveI p_pos : 0 < p := nat.prime.pos hprime,
-    haveI pr_pos : 0 < p^r := nat.pos_pow_of_pos r (nat.prime.pos hprime),
+    haveI pr_pos : 0 < p^r := pow_pos p_pos r,
     have h_prdiv : (p^r : ℤ) ∣ (x^2 - 1),
     {
         rw ←eq_iff_n_divides' hprime,
@@ -137,8 +157,8 @@ begin
         ...    = x^2 - 1 : by rw hf
         ...    = x^2 - ε^2 :
         begin
-            rcases h_eps with rfl | rfl;
-            simp only [one_pow, int.coe_nat_zero, int.coe_nat_succ, int.of_nat_eq_coe, zero_add, neg_square],
+          rcases h_eps with rfl | rfl;
+          simp,
         end
         ...    = (x-ε)^2 + 2*ε*(x-ε) : by ring
         ...    =  (p * e)^2 + 2 * ε * (p*e) : by rw he at *
@@ -149,15 +169,16 @@ begin
     have p_not_dvd_2pe : ¬ (p : ℤ) ∣ (2 * ε + e * p),
     {
         rintro ⟨ s, hs ⟩,
-        have p_dvd_2 : (p : ℤ)∣ 2,
+        have p_dvd_2 : (p : ℤ) ∣ 2,
         {
             use ε * (s-e),
             rw mul_sub,
             rcases h_eps with rfl | rfl;
             {
-                ring,
-                simp only [mul_one, mul_sub, int.mul_neg_eq_neg_mul_symm, neg_sub_neg, ←hs],
-                ring,
+              simp at hs ⊢,
+              rw mul_sub,
+              rw ← hs,
+              ring,
             },
         },
         replace p_dvd_2 := int.dvd_nat_abs_of_of_nat_dvd p_dvd_2,

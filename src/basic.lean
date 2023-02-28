@@ -25,8 +25,8 @@ have r : (∏ x in (finset.erase s a⁻¹), x) = 1,
     split,
     {
       have x_in_s : x ∈ s := finset.mem_of_mem_erase h,
-      by_contradiction,
-      rw a_1 at x_in_s,
+      by_contradiction hc,
+      subst hc,
       exact a_notin_s x_in_s,
     },
     suffices : x⁻¹ ≠ a, from finset.mem_of_mem_insert_of_ne (h1 x (finset.mem_insert_of_mem (finset.mem_of_mem_erase h))) this,  
@@ -228,7 +228,7 @@ def insert_twotors_to_twotors {x : G} {a : subgroup G}
       rw mem_left_coset_iff at hu2 hv2,
       have H : x⁻¹ * x⁻¹ * u * v ∈ a,
       {
-          norm_cast at hu2 hv2 ⊢,
+          norm_num at hu2 hv2 ⊢,
           rw [mul_comm, mul_assoc, ←mul_assoc v _, mul_comm v _],
           exact subgroup.mul_mem a hv2 hu2,
       },
@@ -244,7 +244,7 @@ def insert_twotors_to_twotors {x : G} {a : subgroup G}
       {
           right,
           rw mem_left_coset_iff at hu2 ⊢,
-          norm_cast at hu2 ⊢,
+          norm_num at hu2 ⊢,
           rw [←subgroup.inv_mem_iff, mul_inv, inv_inv, inv_inv],
           have x_eq_xinv : x = x⁻¹ := eq_inv_of_mul_eq_one hx,
           rw ←x_eq_xinv at hu2,
@@ -300,7 +300,7 @@ begin
   {
       rw mem_left_coset_iff at *,
       suffices : g⁻¹ * x ∈ ↑a, by solve_by_elim,
-      norm_cast at *,
+      norm_num at *,
       rw [←subgroup.inv_mem_iff, mul_inv, mul_comm, inv_inv],
       exact cont,
   }
@@ -316,9 +316,9 @@ lemma xua_twotors {x : G} {a : subgroup G}
 begin
   intros y hy,
   let xua := insert_twotors_to_twotors hx ha,
-  have hxinxua : ∀ y : G, y ∈ xua ↔ (y ∈ ↑a ∨ y ∈ left_coset x a), by apply subgroup.mem_coe,
+  have hxinxua : ∀ y : G, y ∈ xua ↔ (y ∈ ↑a ∨ y ∈ left_coset x a) := λ _, iff_of_eq rfl,
   rw hxinxua at hy,
-  cases hy, by exact ha y (subgroup.mem_coe.mp hy),
+  cases hy, by exact ha y hy,
   {
     rw mem_left_coset_iff at hy,
     have HH : ∃ w ∈ a, x⁻¹ * y = w, by tauto,
@@ -348,24 +348,26 @@ begin
   rw set.mem_union at h,
   push_neg at h,
   let xua := insert_twotors_to_twotors hx h₂,
-  have hxinxua : ∀ y : G, y ∈ xua ↔ (y ∈ ↑a ∨ y ∈ left_coset x a), by apply subgroup.mem_coe,
+  have hxinxua : ∀ y : G, y ∈ xua ↔ (y ∈ ↑a ∨ y ∈ left_coset x a) := λ _, iff_of_eq rfl,
   have g_notin_xua : g ∉ xua, by exact g_notin_xua hga hx h₂ h.right,
   have h_twotors : (∀ (y : G), y ∈ xua → y * y = 1), by exact xua_twotors hx h₂,
   have a_eq_xua : a = xua := hmax xua g_notin_xua h_twotors (λ y hy, or.inl hy),
   have x_in_a : x ∈ a,
   {
-      norm_cast at *,
+      norm_num at *,
       rw [a_eq_xua, hxinxua, mem_left_coset_iff],
       right,
-      simp only [subgroup.mem_coe, mul_left_inv],
+      simp only [mul_left_inv],
       exact subgroup.one_mem a
   },
-  norm_cast at h,
+  norm_num at h,
   have hl := h.left,
   trivial,
 end
 
-instance : fintype (subgroup G) := fintype.of_injective (coe : subgroup G → set G) $ λ _ _, subgroup.ext'
+instance finite_sgp : fintype (subgroup G) :=
+  fintype.of_injective (coe : subgroup G → set G) set_like.coe_injective
+
 
 -- given G two torsion and 1 ≠ g ∈ G, there is H < G of index 2 with g ∉ H
 lemma element_avoidance {g : G}  (h₁ : g ≠ 1) (h₂ : g * g = 1):
@@ -441,7 +443,7 @@ lemma fintype_card_eq_finset_card : fintype.card G =
 begin
     unfold fintype.card,
     congr,
-    rw subgroup.coe_top,
+    simp [subgroup.coe_top],
     convert set.to_finset_univ.symm,
 end
 
@@ -455,7 +457,6 @@ begin
         --λ x : G, g * x,
         simp [finset.prod_image],
         unfold_coes,
-
         have hinj : ∀ (x : G), x ∈ (H : set G).to_finset → ∀ (y : G), y ∈ (H : set G).to_finset → g * x = g * y → x = y,
         {
             intros x hx y hy hg,
@@ -464,7 +465,19 @@ begin
         convert finset.prod_image hinj,
         ext1,
         norm_num,
-        split; tauto,
+        split,
+        {
+          intros,
+          use g⁻¹ * a,
+          finish,
+        },
+        {
+          intro h,
+          obtain ⟨b,⟨hb1,hb2⟩⟩ := h,
+          subst hb2,
+          simp at *,
+          tauto,
+        }
     },
     rw [h, finset.prod_mul_distrib],
     simp only [finset.prod_const],
@@ -480,7 +493,7 @@ begin
     have hdisj' : disjoint (H : set G).to_finset (left_coset g ↑H).to_finset,
     {
         intros x hx,
-        simp only [finset.inf_eq_inter, subgroup.mem_coe, set.mem_to_finset, finset.mem_inter] at hx,
+        simp only [finset.inf_eq_inter, set.mem_to_finset, finset.mem_inter] at hx,
         apply hdisj hx,
     },
     have all_twotors : (two_torsion_subgroup G) = ⊤,
@@ -523,7 +536,9 @@ begin
             rw ←finset.card_image_of_injective ((H : set G).to_finset) hinj,
             congr,
             ext,
-            finish,
+            simp,
+            split;
+            { exact id },
         },
         suffices h1 : fintype.card G = finset.card (H : set G).to_finset + finset.card (left_coset g H).to_finset, by linarith,
         have h2 : finset.card ((H : set G).to_finset ∪ (left_coset g H).to_finset)
